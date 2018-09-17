@@ -1,90 +1,62 @@
 
+del_not_available = function(data){
+  
+  data$browserSize = NULL
+  data$browserVersion = NULL
+  data$operatingSystemVersion  = NULL
+  data$mobileDeviceBranding = NULL
+  data$mobileDeviceModel = NULL
+  data$mobileInputSelector = NULL
+  data$mobileDeviceInfo = NULL
+  data$mobileDeviceMarketingName = NULL
+  data$flashVersion = NULL
+  data$language = NULL
+  data$screenColors = NULL
+  data$screenResolution = NULL
+  data$socialEngagementType = NULL
+  data$adwordsClickInfo.criteriaParameters = NULL
+  data$longitude = NULL
+  data$networkLocation = NULL
+  data$latitude = NULL
+  data$cityId = NULL
+  
+  return(data)
+}
+
 
 factor2numeric = function(train2,by,var_name){
-  #colnames(train2)
+  # var_name = c('country','subContinent')
+  # paste('feature_',var_name,sep = '')
+  if( length(var_name) > 1 ){
+    var_name = var_name %>% paste(collapse = "_")
+    var_name = paste('feature_',var_name,sep = '')
+  }else{
+    var_name = paste('feature_',var_name,sep = '')
+  }
+    
   value = train2[, .(
     value = mean(log_Revenue,na.rm = TRUE)), 
     by = by]
-
-  colnames( value ) = c(colnames( value )[1],var_name)
-  return(value)
+  
+  colnames( value ) = c(colnames( value )[1:ncol(value)-1],var_name)
+  return(list(value))
 }
 
-work_feature = function(train2){
-  
-  feature_channelG = factor2numeric(
-    train2,by = 'channelGrouping',var_name = 'feature_channelG')
-  
-  feature_visitN = factor2numeric(
-    train2,by = 'visitNumber',var_name = 'feature_visitN')
-  
-  feature_browser = factor2numeric(
-    train2,by = 'browser',var_name = 'feature_browser')
-  
-  feature_operatingS = factor2numeric(
-    train2,by = 'operatingSystem',var_name = 'feature_operatingS')
-  
-  feature_deviceC = factor2numeric(
-    train2,by = 'deviceCategory',var_name = 'feature_deviceC')
-  
-  feature_continent = factor2numeric(
-    train2,by = 'continent',var_name = 'feature_continent')
-  
-  feature_subC = factor2numeric(
-    train2,by = 'subContinent',var_name = 'feature_subC')
-  
-  feature_country = factor2numeric(
-    train2,by = 'country',var_name = 'feature_country')
-  
-  feature_region = factor2numeric(
-    train2,by = 'region',var_name = 'feature_region')
-  
-  feature_metro = factor2numeric(
-    train2,by = 'metro',var_name = 'feature_metro')
-  
-  feature_city = factor2numeric(
-    train2,by = 'city',var_name = 'feature_city')
-  
-  feature_networkD = factor2numeric(
-    train2,by = 'networkDomain',var_name = 'feature_networkD')
-  
-  feature_source = factor2numeric(
-    train2,by = 'source',var_name = 'feature_source')
-  
-  feature_medium = factor2numeric(
-    train2,by = 'medium',var_name = 'feature_medium')
-  
-  feature_keyword = factor2numeric(
-    train2,by = 'keyword',var_name = 'feature_keyword')
-  
-  feature = list(feature_channelG,
-                 feature_visitN,
-                 feature_browser,
-                 feature_operatingS,
-                 feature_deviceC,
-                 feature_continent,
-                 feature_subC,
-                 feature_country,
-                 feature_region,
-                 feature_metro,
-                 feature_city,
-                 feature_networkD,
-                 feature_source,
-                 feature_medium,
-                 feature_keyword)
-  by_list = c('channelGrouping','visitNumber','browser',
-              'operatingSystem','deviceCategory','continent',
-              'subContinent','country','region',
-              'metro','city','networkDomain',
-              'source','medium','keyword')
-  return(list(feature,by_list))
+work_feature = function(train,by_list){
+
+  feature = sapply(by_list, function(text){
+    value = factor2numeric(
+      train,by = text,var_name = text)
+    return(value)
+  })
+
+  return(feature)
 }
 
 
 JsonChange = function(data){
   
   print('json change to data table')
-  #s = Sys.time()
   device = data$device %>% paste(., collapse = ",") %>% paste("[", ., "]") %>% 
     fromJSON(flatten = T) %>% data.table
   
@@ -97,9 +69,7 @@ JsonChange = function(data){
   
   trafficSource = data$trafficSource %>% paste(., collapse = ",") %>% paste("[", ., "]") %>% 
     fromJSON(flatten = T) %>% data.table
-  
-  #e = Sys.time() - s
-  
+
   data$device = NULL
   data$geoNetwork = NULL
   data$totals = NULL
@@ -118,8 +88,54 @@ JsonChange = function(data){
 }
 
 
+build_model = function(train2,sel_col){
 
+  y = train2$log_Revenue
+  
+  dtrain <- xgb.DMatrix( data = as.matrix(
+    subset(train2,select = sel_col )
+  ) ,label = y)
+  gc()
+  
+  xgb_params=list( 	
+    objective="reg:linear",
+    #objective = "binary:logistic",
+    booster = "gbtree",
+    #eval_metric = 'rmse',
+    eta = 0.1, 
+    max_depth = 5,
+    colsample_bytree = 0.7,
+    subsample = 0.7
+    ,tree_method = 'gpu_hist'
+    ,seed = 0
+    ,lambda = 1
+    ,alpha = 1
+  )
+  
+  set.seed(100)
+  xgb_cv <- xgb.cv(data = dtrain,
+                   params = xgb_params,
+                   nrounds = 1000,
+                   maximize = FALSE,
+                   prediction = TRUE,
+                   nfold = 3,
+                   print_every_n = 10
+                   ,early_stopping_rounds = 10
+                   ,nthread = 8
+                   #,eval_metric = MCC
+                   #,eval_metric = "rmse"
+  )
+  
+  best_nrounds = xgb_cv$best_iteration
+  
+  value = xgb_cv$evaluation_log$train_rmse_mean[best_nrounds] - 
+    xgb_cv$evaluation_log$test_rmse_mean[best_nrounds]
+  print(abs(value))
 
+  rm(xgb_cv);gc()
+  
+  return(list(xgb_params,best_nrounds,dtrain))
+}
 
 
 
