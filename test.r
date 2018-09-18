@@ -193,11 +193,31 @@ sel_col = c('visitStartTime',
 sel_col = c(sel_col,feature_name)
 #print(sel_col)
 
-tem = build_model(train2,sel_col)
+tem = build_model(train2,sel_col,lambda = 200)
 xgb_params = tem[[1]]
 best_nrounds = tem[[2]]
 dtrain = tem[[3]]
 v = tem[[4]]
+
+# lambda = 120
+# [403]	train-rmse:1.537031+0.004888	test-rmse:1.580607+0.015449
+# [1] 0.04357533
+# 1.6915
+# lambda = 200
+# [374]	train-rmse:1.548075+0.004795	test-rmse:1.584406+0.016228
+# [1] 0.03633033
+# 1.6958
+
+
+
+
+
+
+
+
+
+
+
 
 # alpha = 0
 # [197]	train-rmse:1.553004+0.005078	test-rmse:1.590425+0.016485
