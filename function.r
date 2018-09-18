@@ -108,7 +108,7 @@ build_model = function(train2,sel_col){
     ,tree_method = 'gpu_hist'
     ,seed = 0
     ,lambda = 50
-    ,alpha = 3
+    ,alpha = 0
   )
   
   set.seed(100)
