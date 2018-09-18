@@ -48,6 +48,7 @@ data = data %>%
 # fwrite(data,'json_data.csv',row.names = FALSE)
 # data = fread('json_data.csv')
 #------------------------------------------
+#data = fread('merge_data.csv')
 train = data %>% 
   filter(log_Revenue != -1) %>% 
   data.table
@@ -70,10 +71,10 @@ feature = work_feature(train,by_list)
 
 #------------------------------------------
 data$log_Revenue[ is.na( data$log_Revenue ) ] = 0
-# for (i in c(1:length(by_list))) {
-#   print(i)
-#   data = merge(data , feature[[i]], all.x = TRUE, by = by_list[[i]] )
-# }
+for (i in c(1:length(by_list))) {
+  print(i)
+  data = merge(data , feature[[i]], all.x = TRUE, by = by_list[[i]] )
+}
 
 name = sapply( c(1:length(feature)),function(i){
   return( list( colnames( feature[[i]] ) ) )
@@ -81,7 +82,7 @@ name = sapply( c(1:length(feature)),function(i){
 name = do.call(c,name)
 feature_name = name[ !( name %in% by_list ) ]
 # fwrite(data,'merge_data.csv',row.names = FALSE)
-# data = fread('merge_data.csv')
+
 #==========================================================
 #n_distinct(train$newVisits)
 #data$hits = log1p(data$hits)
@@ -89,11 +90,11 @@ feature_name = name[ !( name %in% by_list ) ]
 #==========================================================
 data2 = data
 
-# mean_hits_day = train[,.(mean_hits_day = mean(hits)),by = 'day']
-# sum_hits_day = train[,.(sum_hits_day = sum(hits)),by = 'day']
-# max_hits_day = train[,.(max_hits_day = max(hits)),by = 'day']
-# min_hits_day = train[,.(min_hits_day = min(hits)),by = 'day']
-# var_hits_day = train[,.(var_hits_day = var(hits)),by = 'day']
+# mean_hits_day = train[,.(mean_hits_day = mean(hits,na.rm = TRUE)),by = 'day']
+# sum_hits_day = train[,.(sum_hits_day = sum(hits,na.rm = TRUE)),by = 'day']
+# max_hits_day = train[,.(max_hits_day = max(hits,na.rm = TRUE)),by = 'day']
+# min_hits_day = train[,.(min_hits_day = min(hits,na.rm = TRUE)),by = 'day']
+# var_hits_day = train[,.(var_hits_day = var(hits,na.rm = TRUE)),by = 'day']
 # 
 # 
 # data2 = merge(data2 , mean_hits_day, all.x = TRUE, by = 'day' )
@@ -135,22 +136,22 @@ feature_name = c(feature_name,feature_name3)
 #==========================================================
 
 test = function(by_list2,data2,feature_name){
-  
+
   print('feature engineer')
   feature2 = work_feature(train,by_list2)
-  
+
   for (i in c(1:length(by_list2))) {
     print(i)
     data2 = merge(data2 , feature2[[i]], all.x = TRUE, by = by_list2[[i]] )
   }
-  
+
   name2 = sapply( c(1:length(feature2)),function(i){
     return( list( colnames( feature2[[i]] ) ) )
   } )
   name2 = do.call(c,name2)
-  feature_name4 = name2[ !( name2 %in% by_list ) ] 
-  feature_name = c(feature_name,feature_name4)  
-  
+  feature_name4 = name2[ !( name2 %in% by_list ) ]
+  feature_name = c(feature_name,feature_name4)
+
   return( list(data2,feature_name) )
 }
 
@@ -161,19 +162,16 @@ by_list2 = list(c('browser','deviceCategory'),
 tem = test(by_list2,data2,feature_name)
 data2 = tem[[1]]
 feature_name = tem[[2]]
-print(feature_name)
+#print(feature_name)
 
-
+#feature_name = c(feature_name,'deviceCategory','operatingSystem')
 
 
 #==========================================================
 print('train model')
 #data$newVisits[is.na(data$newVisits)] = 0
 
-
 #n_distinct(train$visits)
-
-
 
 train2 = data2 %>% 
   filter(log_Revenue != -1) %>% 
@@ -193,12 +191,13 @@ sel_col = c('visitStartTime',
 
 #sel_col = c(sel_col,feature_name[c(1,4,6,7)])
 sel_col = c(sel_col,feature_name)
-print(sel_col)
+#print(sel_col)
 
 tem = build_model(train2,sel_col)
 xgb_params = tem[[1]]
 best_nrounds = tem[[2]]
 dtrain = tem[[3]]
+v = tem[[4]]
 
 # alpha = 0
 # [197]	train-rmse:1.553004+0.005078	test-rmse:1.590425+0.016485
@@ -208,6 +207,21 @@ dtrain = tem[[3]]
 # [310]	train-rmse:1.537928+0.005213	test-rmse:1.585629+0.016280
 # [1] 0.04770067
 # 1.6946
+# cs, ss = 0.8
+# [357]	train-rmse:1.525758+0.002900	test-rmse:1.580888+0.017612
+# [1] 0.05513
+# cs, ss = 0.5
+# [361]	train-rmse:1.547201+0.006121	test-rmse:1.593169+0.014507
+# [1] 0.04596867
+# max_depth = 3
+# [614]	train-rmse:1.574561+0.006980	test-rmse:1.601359+0.014820
+# [1] 0.02679767
+
+# [383]	train-rmse:1.541689+0.004001	test-rmse:1.584438+0.016526
+# [1] 0.042749
+# 1.6954
+
+
 
 
 

@@ -35,7 +35,7 @@ factor2numeric = function(train2,by,var_name){
   }
     
   value = train2[, .(
-    value = mean(log_Revenue,na.rm = TRUE)), 
+    value = mean(log_Revenue)), 
     by = by]
   
   colnames( value ) = c(colnames( value )[1:ncol(value)-1],var_name)
@@ -107,7 +107,7 @@ build_model = function(train2,sel_col){
     subsample = 0.7
     ,tree_method = 'gpu_hist'
     ,seed = 0
-    ,lambda = 50
+    ,lambda = 120
     ,alpha = 0
   )
   
@@ -118,7 +118,7 @@ build_model = function(train2,sel_col){
                    maximize = FALSE,
                    prediction = TRUE,
                    nfold = 3,
-                   print_every_n = 10
+                   print_every_n = 100
                    ,early_stopping_rounds = 10
                    #,nthread = 8
                    #,eval_metric = MCC
@@ -129,16 +129,13 @@ build_model = function(train2,sel_col){
   
   value = xgb_cv$evaluation_log$train_rmse_mean[best_nrounds] - 
     xgb_cv$evaluation_log$test_rmse_mean[best_nrounds]
-  print(abs(value))
+  v = abs(value)
+  print(v)
 
   rm(xgb_cv);gc()
   
-  return(list(xgb_params,best_nrounds,dtrain))
+  return(list(xgb_params,best_nrounds,dtrain,v))
 }
-
-
-
-
 
 
 
