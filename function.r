@@ -91,7 +91,6 @@ JsonChange = function(data){
 build_model = function(train2,sel_col){
 
   y = train2$log_Revenue
-  
   dtrain <- xgb.DMatrix( data = as.matrix(
     subset(train2,select = sel_col )
   ) ,label = y)
@@ -108,8 +107,8 @@ build_model = function(train2,sel_col){
     subsample = 0.7
     ,tree_method = 'gpu_hist'
     ,seed = 0
-    ,lambda = 1
-    ,alpha = 1
+    ,lambda = 50
+    ,alpha = 3
   )
   
   set.seed(100)
@@ -121,7 +120,7 @@ build_model = function(train2,sel_col){
                    nfold = 3,
                    print_every_n = 10
                    ,early_stopping_rounds = 10
-                   ,nthread = 8
+                   #,nthread = 8
                    #,eval_metric = MCC
                    #,eval_metric = "rmse"
   )

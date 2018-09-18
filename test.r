@@ -70,10 +70,10 @@ feature = work_feature(train,by_list)
 
 #------------------------------------------
 data$log_Revenue[ is.na( data$log_Revenue ) ] = 0
-for (i in c(1:length(by_list))) {
-  print(i)
-  data = merge(data , feature[[i]], all.x = TRUE, by = by_list[[i]] )
-}
+# for (i in c(1:length(by_list))) {
+#   print(i)
+#   data = merge(data , feature[[i]], all.x = TRUE, by = by_list[[i]] )
+# }
 
 name = sapply( c(1:length(feature)),function(i){
   return( list( colnames( feature[[i]] ) ) )
@@ -84,9 +84,84 @@ feature_name = name[ !( name %in% by_list ) ]
 # data = fread('merge_data.csv')
 #==========================================================
 #n_distinct(train$newVisits)
-data$hits = log1p(data$hits)
-data$visitNumber = log1p(data$visitNumber)
+#data$hits = log1p(data$hits)
+#data$visitNumber = log1p(data$visitNumber)
 #==========================================================
+data2 = data
+
+# mean_hits_day = train[,.(mean_hits_day = mean(hits)),by = 'day']
+# sum_hits_day = train[,.(sum_hits_day = sum(hits)),by = 'day']
+# max_hits_day = train[,.(max_hits_day = max(hits)),by = 'day']
+# min_hits_day = train[,.(min_hits_day = min(hits)),by = 'day']
+# var_hits_day = train[,.(var_hits_day = var(hits)),by = 'day']
+# 
+# 
+# data2 = merge(data2 , mean_hits_day, all.x = TRUE, by = 'day' )
+# data2 = merge(data2 , sum_hits_day, all.x = TRUE, by = 'day' )
+# data2 = merge(data2 , max_hits_day, all.x = TRUE, by = 'day' )
+# data2 = merge(data2 , min_hits_day, all.x = TRUE, by = 'day' )
+# data2 = merge(data2 , var_hits_day, all.x = TRUE, by = 'day' )
+# 
+# feature_name2 = c('mean_hits_day','sum_hits_day',
+#                   'max_hits_day','min_hits_day',
+#                   'var_hits_day')
+# 
+# feature_name = c(feature_name,feature_name2)
+
+#==========================================================
+
+mean_pageviews_networkDomain = train[,.(mean_pageviews_networkDomain = mean(pageviews)),by = 'networkDomain']
+sum_pageviews_networkDomain = train[,.(sum_pageviews_networkDomain = sum(pageviews)),by = 'networkDomain']
+max_pageviews_networkDomain = train[,.(max_pageviews_networkDomain = max(pageviews)),by = 'networkDomain']
+min_pageviews_networkDomain = train[,.(min_pageviews_networkDomain = min(pageviews)),by = 'networkDomain']
+var_pageviews_networkDomain = train[,.(var_pageviews_networkDomain = var(pageviews)),by = 'networkDomain']
+
+
+data2 = merge(data2 , mean_pageviews_networkDomain, all.x = TRUE, by = 'networkDomain' )
+data2 = merge(data2 , sum_pageviews_networkDomain, all.x = TRUE, by = 'networkDomain' )
+data2 = merge(data2 , max_pageviews_networkDomain, all.x = TRUE, by = 'networkDomain' )
+data2 = merge(data2 , min_pageviews_networkDomain, all.x = TRUE, by = 'networkDomain' )
+data2 = merge(data2 , var_pageviews_networkDomain, all.x = TRUE, by = 'networkDomain' )
+
+feature_name3 = c('mean_pageviews_networkDomain','sum_pageviews_networkDomain',
+                  'max_pageviews_networkDomain','min_pageviews_networkDomain',
+                  'var_pageviews_networkDomain')
+
+feature_name = c(feature_name,feature_name3)
+
+
+
+#==========================================================
+#==========================================================
+
+test = function(by_list2,data2,feature_name){
+  
+  print('feature engineer')
+  feature2 = work_feature(train,by_list2)
+  
+  for (i in c(1:length(by_list2))) {
+    print(i)
+    data2 = merge(data2 , feature2[[i]], all.x = TRUE, by = by_list2[[i]] )
+  }
+  
+  name2 = sapply( c(1:length(feature2)),function(i){
+    return( list( colnames( feature2[[i]] ) ) )
+  } )
+  name2 = do.call(c,name2)
+  feature_name4 = name2[ !( name2 %in% by_list ) ] 
+  feature_name = c(feature_name,feature_name4)  
+  
+  return( list(data2,feature_name) )
+}
+
+
+by_list2 = list(c('browser','deviceCategory'),
+                c('browser','operatingSystem'))
+
+tem = test(by_list2,data2,feature_name)
+data2 = tem[[1]]
+feature_name = tem[[2]]
+print(feature_name)
 
 
 
@@ -95,7 +170,12 @@ data$visitNumber = log1p(data$visitNumber)
 print('train model')
 #data$newVisits[is.na(data$newVisits)] = 0
 
-train2 = data %>% 
+
+#n_distinct(train$visits)
+
+
+
+train2 = data2 %>% 
   filter(log_Revenue != -1) %>% 
   data.table
 
@@ -106,7 +186,6 @@ sel_col = c('visitStartTime',
             ,'newVisits'
             ,'isMobile'
             ,'visitNumber'
-            #,'browser_category'
             #,'year'
             #,'month'
             #,'day'
@@ -148,16 +227,14 @@ dtrain = tem[[3]]
 # 0.09804333
 # [319]	train-rmse:1.477606+0.006100	test-rmse:1.575649+0.006353
 
+# [248]	train-rmse:1.512077+0.004390	test-rmse:1.585583+0.009832
+# [1] 0.073506
+
+[229]	train-rmse:1.516353+0.005211	test-rmse:1.585985+0.015172
 
 
 
 
-
-#[155]	train-rmse:1.539619+0.005814	test-rmse:1.600069+0.009433
-#[1] 0.06045
-
-#[132]	train-rmse:1.547473+0.003015	test-rmse:1.604630+0.005393
-#[1] 0.05715767
 
 
 
@@ -180,7 +257,7 @@ clf <- xgb.train(params = xgb_params,
                  #feval = mcc.evaluation.fun
 )
 
-test2 = data %>% 
+test2 = data2 %>% 
   filter(log_Revenue == -1) %>% 
   data.table
 
@@ -235,7 +312,7 @@ gc()
 # colsample_bytree = 0.7, subsample = 1, 0.088771
 # [255]	train-rmse:1.504264+0.004784	test-rmse:1.590633+0.006836
 # kaggle 1.7097
-
+# 1.7295
 
 
 
