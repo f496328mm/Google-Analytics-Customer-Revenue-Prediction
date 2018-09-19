@@ -193,7 +193,7 @@ sel_col = c('visitStartTime',
 sel_col = c(sel_col,feature_name)
 #print(sel_col)
 
-tem = build_model(train2,sel_col,lambda = 200)
+tem = build_model(train2,sel_col,lambda = 120)
 xgb_params = tem[[1]]
 best_nrounds = tem[[2]]
 dtrain = tem[[3]]
@@ -207,15 +207,20 @@ v = tem[[4]]
 # [374]	train-rmse:1.548075+0.004795	test-rmse:1.584406+0.016228
 # [1] 0.03633033
 # 1.6958
+# nfold = 5, early = 5, lambda = 120
+# [429]	train-rmse:1.534650+0.002011	test-rmse:1.577384+0.008542
+# [1] 0.0427346
+
+# lambda = 100
+# [388]	train-rmse:1.535366+0.002595	test-rmse:1.577132+0.008634
+# [1] 0.041766
+# lamda = 50
+# [418]	train-rmse:1.523184+0.003717	test-rmse:1.574496+0.007551
+# [1] 0.0513118
 
 
 
-
-
-
-
-
-
+#sum( train2$log_Revenue == 0 )/nrow(train2)
 
 
 
@@ -272,6 +277,18 @@ dtest <- xgb.DMatrix( data = as.matrix(
   subset(test2,select = sel_col )
 ) )
 pred = predict(clf,dtest)
+
+
+
+# per = sum( train2$log_Revenue == 0 )/nrow(train2)
+# filter_rank = as.integer( per*length(pred) )
+# filter_value = sort(pred)[filter_rank]
+
+pred[ pred < 0 ] = 0 
+sum( pred < 0 )/length(pred)
+
+
+
 #test2$fullVisitorId
 output = test2 %>% subset(select = c('fullVisitorId'))
 output$PredictedLogRevenue = pred
@@ -280,6 +297,7 @@ result = output[,.(PredictedLogRevenue = sum(PredictedLogRevenue)),
                 by = 'fullVisitorId' ]
 
 fwrite(result,'result.csv',row.names = FALSE)
+
 rm(clf)
 gc()
 
