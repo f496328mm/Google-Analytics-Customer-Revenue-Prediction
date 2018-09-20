@@ -45,7 +45,7 @@ data = data %>%
          day = day(date),
          weekdays = weekdays(date)) %>% 
   data.table
-# fwrite(data,'json_data.csv',row.names = FALSE)
+#fwrite(data,'json_data.csv',row.names = FALSE)
 # data = fread('json_data.csv')
 #------------------------------------------
 #data = fread('merge_data.csv')
@@ -210,6 +210,8 @@ v = tem[[4]]
 # nfold = 5, early = 5, lambda = 120
 # [429]	train-rmse:1.534650+0.002011	test-rmse:1.577384+0.008542
 # [1] 0.0427346
+# pred<0 = 0
+# 1.6840
 
 # lambda = 100
 # [388]	train-rmse:1.535366+0.002595	test-rmse:1.577132+0.008634
@@ -246,7 +248,8 @@ v = tem[[4]]
 # [1] 0.042749
 # 1.6954
 
-
+# [440]	train-rmse:1.533990+0.002190	test-rmse:1.577195+0.008308
+# [1] 0.0432052
 
 
 
@@ -278,15 +281,9 @@ dtest <- xgb.DMatrix( data = as.matrix(
 ) )
 pred = predict(clf,dtest)
 
-
-
 # per = sum( train2$log_Revenue == 0 )/nrow(train2)
 # filter_rank = as.integer( per*length(pred) )
 # filter_value = sort(pred)[filter_rank]
-
-pred[ pred < 0 ] = 0 
-sum( pred < 0 )/length(pred)
-
 
 
 #test2$fullVisitorId
@@ -295,7 +292,7 @@ output$PredictedLogRevenue = pred
 
 result = output[,.(PredictedLogRevenue = sum(PredictedLogRevenue)),
                 by = 'fullVisitorId' ]
-
+result$PredictedLogRevenue[ result$PredictedLogRevenue<0 ] = 0
 fwrite(result,'result.csv',row.names = FALSE)
 
 rm(clf)
